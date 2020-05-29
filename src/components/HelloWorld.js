@@ -1,6 +1,7 @@
 import Authereum from "authereum";
 import Web3 from "web3";
 import * as ethutil from "ethereumjs-util";
+// import * as validator from "is-valid-signature";
 
 export default {
   name: "HelloWorld",
@@ -62,8 +63,10 @@ export default {
       });
       await this.authereum.login();
       this.provider = this.authereum.getProvider();
+      console.log(this.provider);
       await this.provider.enable();
       this.web3 = new Web3(this.provider);
+      console.log(this.web3);
       this.log = "Logged in.";
     },
     async logout() {
@@ -81,10 +84,22 @@ export default {
     },
     // signing a message
     async signMessage() {
-      this.signature = await this.web3.eth.sign(this.message, this.accounts[0]);
-      console.log(this.signature);
+      this.signature = await this.web3.eth.personal.sign(
+        this.message,
+        this.accounts[0],
+        (error, signature) => {
+          console.log(signature);
+          //signatureSpan.innerHTML = signature;
+          this.signature = signature;
+          // send it to backend to verify it
+          this.verifySignatureAuthereum();
+        }
+      );
       this.log = "Message signed with resulting signature: ";
       this.log += this.customSplit(this.signature, 25);
+    },
+    addLog(message) {
+      this.log += message;
     },
     customSplit(str, maxLength) {
       if (str.length <= maxLength) return str;
@@ -108,7 +123,7 @@ export default {
         return new Promise((resolve, reject) =>
           this.web3.eth.personal.sign(
             this.web3.utils.fromUtf8(
-              `Signing my nonce: ${this.currentUser.nonce}`
+              `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
             ),
             this.publicAddress,
             (err, signature) => {
@@ -126,10 +141,54 @@ export default {
       // call function then send it to backend
       handleSignMessage();
     },
+    async verifySignatureAuthereum() {
+      const ethers = require("ethers");
+
+      const provider = ethers.getDefaultProvider("kovan");
+
+      const eip1271Abi = [
+        {
+          constant: true,
+          inputs: [
+            {
+              name: "_messageHash",
+              type: "bytes"
+            },
+            {
+              name: "_signature",
+              type: "bytes"
+            }
+          ],
+          name: "isValidSignature",
+          outputs: [
+            {
+              name: "magicValue",
+              type: "bytes4"
+            }
+          ],
+          payable: false,
+          stateMutability: "view",
+          type: "function"
+        }
+      ];
+
+      const data =
+        "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad";
+      const magicValue = "0x20c13b0b";
+      const instance = new ethers.Contract(
+        this.accounts[0],
+        eip1271Abi,
+        provider
+      );
+      const result = await instance.isValidSignature(data, this.signature);
+      const verified = result === magicValue;
+
+      console.log(verified); // true
+    },
     async verifySignature() {
       // backend knows what msg he originally sended
       const msg = this.web3.utils.fromUtf8(
-        `Signing my nonce: ${this.currentUser.nonce}`
+        `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
       );
 
       // now that we have a msg, publicAddress and signature.
