@@ -193,12 +193,6 @@ export default {
       const msg = this.web3.utils.fromUtf8(
         `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
       );
-      console.log(
-        "base64: " +
-          btoa(
-            `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
-          )
-      );
       console.log("message: " + msg);
       // now that we have a msg, publicAddress and signature.
       // lets perform an elliptic curve signature verification with ecrecover
