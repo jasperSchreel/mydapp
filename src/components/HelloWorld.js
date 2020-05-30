@@ -51,6 +51,8 @@ export default {
       //    await this.provider.enable();
       this.accounts = await this.web3.eth.getAccounts();
       console.log(this.accounts[0]);
+      const cbase = await this.web3.eth.getCoinbase();
+      console.log("coinbase: " + cbase);
     },
     async connectMetaMask() {
       this.accounts = await this.ethereum.enable();
@@ -172,8 +174,8 @@ export default {
         }
       ];
 
-      const data =
-        "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad";
+      const data = "0x" + Buffer.from(this.message).toString("hex");
+      console.log(data);
       const magicValue = "0x20c13b0b";
       const instance = new ethers.Contract(
         this.accounts[0],
@@ -181,6 +183,7 @@ export default {
         provider
       );
       const result = await instance.isValidSignature(data, this.signature);
+      console.log(result);
       const verified = result === magicValue;
 
       console.log(verified); // true
@@ -190,7 +193,13 @@ export default {
       const msg = this.web3.utils.fromUtf8(
         `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
       );
-
+      console.log(
+        "base64: " +
+          btoa(
+            `Do you want to sign this app with nonce: ${this.currentUser.nonce}?`
+          )
+      );
+      console.log("message: " + msg);
       // now that we have a msg, publicAddress and signature.
       // lets perform an elliptic curve signature verification with ecrecover
       const msgBuffer = ethutil.toBuffer(msg);
